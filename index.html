@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0F151C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Отжимания">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Счётчик отжиманий</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Golos+Text:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one narrow column, a huge round tap pad as the hero; calendar as a heat grid of the month */
+:root{
+  --bg:#EEF0F3; --surface:#FFFFFF; --ink:#141B24; --muted:#5D6877; --line:#D6DBE2;
+  --accent:#F2541B; --accent-ink:#FFFFFF; --cell:#E3E7EC; --good:#1E8F5A;
+  --display:"Big Shoulders Display","Oswald","Arial Narrow",sans-serif;
+  --body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F151C; --surface:#18212B; --ink:#EEF2F6; --muted:#93A0B0; --line:#2A3542;
+  --accent:#FF6A35; --accent-ink:#1A0D06; --cell:#1F2934; --good:#4CC98C; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F151C; --surface:#18212B; --ink:#EEF2F6; --muted:#93A0B0; --line:#2A3542;
+  --accent:#FF6A35; --accent-ink:#1A0D06; --cell:#1F2934; --good:#4CC98C; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;
+  -webkit-tap-highlight-color:transparent}
+.wrap{max-width:480px;margin:0 auto;padding-block:12px 32px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:20px}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column}
+.brand b{font-family:var(--display);font-weight:800;font-size:1.6rem;letter-spacing:.02em;text-transform:uppercase;line-height:1}
+.brand span{color:var(--muted);font-size:.85rem}
+.tabs{display:flex;background:var(--cell);border-radius:999px;padding:4px;gap:2px}
+.tabs button{border:0;background:transparent;padding:8px 14px;border-radius:999px;font-weight:600;font-size:.9rem;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+
+/* counter */
+.pad-zone{display:flex;flex-direction:column;align-items:center;gap:14px}
+.pad{width:min(80vw,330px);aspect-ratio:1;max-width:100%;border-radius:50%;border:0;
+  background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;align-content:center;
+  touch-action:manipulation;user-select:none;-webkit-user-select:none;
+  box-shadow:0 0 0 10px color-mix(in oklab,var(--accent) 18%,transparent),0 18px 40px -16px color-mix(in oklab,var(--accent) 70%,transparent);
+  transition:transform .08s}
+.pad:active,.pad.hit{transform:scale(.965)}
+.pad .count{font-family:var(--display);font-weight:800;font-size:clamp(6rem,30vw,9rem);line-height:.85}
+.pad .lbl{font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.12em;opacity:.85;margin-top:6px}
+.hint{color:var(--muted);font-size:.85rem;text-align:center;max-width:32ch;text-wrap:balance}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);padding:12px 16px;border-radius:14px;font-weight:600}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);flex:1}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.danger{color:#C2341B}
+.controls{width:100%}
+
+.today{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.today-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.big{font-family:var(--display);font-weight:800;font-size:2.6rem;line-height:1}
+.big small{font-size:1.2rem;color:var(--muted);font-weight:600}
+.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600}
+.bar{height:10px;background:var(--cell);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .3s}
+.bar.done i{background:var(--good)}
+.sets{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--cell);border-radius:10px;padding:5px 6px 5px 10px;font-weight:600}
+.chip button{border:0;background:transparent;color:var(--muted);width:22px;height:22px;border-radius:6px;line-height:1;font-size:1rem}
+.chip button:hover{background:var(--line)}
+.empty{color:var(--muted);font-size:.9rem}
+.add{display:flex;gap:8px}
+.add input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px}
+
+/* calendar */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-width:0}
+.stat b{display:block;font-family:var(--display);font-weight:800;font-size:1.8rem;line-height:1.05}
+.stat span{font-size:.75rem;color:var(--muted)}
+.cal{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-head h2{margin:0;font-size:1.05rem;text-transform:capitalize}
+.cal-head button{border:1px solid var(--line);background:transparent;width:38px;height:38px;border-radius:12px;font-size:1.1rem}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dow{font-size:.7rem;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.06em;padding-bottom:2px}
+.day{aspect-ratio:1;max-width:100%;border:0;border-radius:10px;background:var(--cell);position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;min-width:0}
+.day .d{font-size:.78rem;font-weight:600;line-height:1}
+.day .t{font-family:var(--display);font-weight:800;font-size:.95rem;line-height:1}
+.day.out{visibility:hidden}
+.day.future{opacity:.45}
+.day.is-today{box-shadow:inset 0 0 0 2px var(--ink)}
+.day.sel{outline:3px solid var(--accent);outline-offset:1px}
+.day.goal::after{content:"";position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--good)}
+.legend{display:flex;align-items:center;gap:5px;justify-content:flex-end;margin-top:10px;font-size:.72rem;color:var(--muted)}
+.legend i{width:14px;height:14px;border-radius:4px;display:inline-block}
+
+.settings{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px}
+.settings h3{margin:0;font-size:1rem}
+.field{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.field input{width:90px;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 10px;text-align:right}
+.note{font-size:.8rem;color:var(--muted)}
+#importFile{display:none}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:.9rem;
+  max-width:calc(100% - 32px);z-index:20}
+@media (prefers-reduced-motion:reduce){.pad,.bar i{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand"><b>Отжимания</b><span id="todayLabel"></span></div>
+    <div class="tabs" role="tablist">
+      <button id="tab-count" role="tab" aria-selected="true" data-view="count">Счёт</button>
+      <button id="tab-cal" role="tab" aria-selected="false" data-view="cal">Календарь</button>
+    </div>
+  </header>
+
+  <main id="view-count" style="display:flex;flex-direction:column;gap:20px">
+    <section class="pad-zone">
+      <button class="pad" id="pad" aria-label="Плюс одно отжимание">
+        <span class="count num" id="count">0</span>
+        <span class="lbl">в подходе</span>
+      </button>
+      <p class="hint">Положите телефон на пол под лицо и касайтесь экрана носом или подбородком в нижней точке.</p>
+      <div class="row controls">
+        <button class="btn" id="minus" aria-label="Минус одно">−1</button>
+        <button class="btn primary" id="saveSet">Записать подход</button>
+        <button class="btn ghost" id="clearSet">Обнулить</button>
+      </div>
+    </section>
+
+    <section class="today" aria-label="Итог за сегодня">
+      <div class="today-top">
+        <div><div class="eyebrow">Сегодня</div><div class="big num" id="todayTotal">0 <small>/ 100</small></div></div>
+        <div class="eyebrow num" id="todaySets">0 подходов</div>
+      </div>
+      <div class="bar" id="todayBar"><i></i></div>
+      <div class="sets" id="todayChips"></div>
+    </section>
+  </main>
+
+  <main id="view-cal" hidden style="flex-direction:column;gap:16px">
+    <section class="stats">
+      <div class="stat"><b class="num" id="stStreak">0</b><span>дней подряд</span></div>
+      <div class="stat"><b class="num" id="stMonth">0</b><span>за месяц</span></div>
+      <div class="stat"><b class="num" id="stBest">0</b><span>лучший день</span></div>
+    </section>
+
+    <section class="cal">
+      <div class="cal-head">
+        <button id="prevM" aria-label="Предыдущий месяц">‹</button>
+        <h2 id="monthTitle"></h2>
+        <button id="nextM" aria-label="Следующий месяц">›</button>
+      </div>
+      <div class="grid" id="grid"></div>
+      <div class="legend">меньше <i style="background:var(--cell)"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> цель</div>
+    </section>
+
+    <section class="today" aria-label="Выбранный день">
+      <div class="today-top">
+        <div><div class="eyebrow" id="selLabel"></div><div class="big num" id="selTotal">0</div></div>
+        <div class="eyebrow num" id="selSets"></div>
+      </div>
+      <div class="sets" id="selChips"></div>
+      <form class="add" id="addForm">
+        <input id="addInput" type="number" inputmode="numeric" min="1" max="999" placeholder="Сколько отжиманий">
+        <button class="btn" type="submit">Добавить подход</button>
+      </form>
+    </section>
+
+    <section class="settings">
+      <h3>Настройки</h3>
+      <div class="field"><label for="goalInput">Цель на день</label><input id="goalInput" type="number" inputmode="numeric" min="1" max="2000"></div>
+      <div class="row">
+        <button class="btn" id="exportBtn">Экспорт данных</button>
+        <button class="btn" id="importBtn">Импорт</button>
+        <input type="file" id="importFile" accept="application/json,.json">
+        <button class="btn ghost danger" id="wipeBtn">Удалить всё</button>
+      </div>
+      <p class="note">Данные хранятся только на этом устройстве. Экспорт сохраняет файл-копию, его можно загрузить обратно на другом телефоне.</p>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<style>
+.legend .l1{background:color-mix(in oklab,var(--accent) 25%,var(--cell))}
+.legend .l2{background:color-mix(in oklab,var(--accent) 50%,var(--cell))}
+.legend .l3{background:color-mix(in oklab,var(--accent) 75%,var(--cell))}
+.legend .l4{background:var(--accent)}
+#view-cal:not([hidden]){display:flex}
+</style>
+
+<script>
+(function(){
+  var KEY='pushups.v1';
+  var state={goal:100,days:{},cur:{date:'',count:0}};
+  try{var s=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(s&&typeof s==='object'&&s.days){state.goal=+s.goal||100;state.days=s.days;if(s.cur)state.cur=s.cur;}}catch(e){}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+
+  var $=function(id){return document.getElementById(id)};
+  function key(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function parse(k){var p=k.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+  function todayKey(){return key(new Date())}
+  function total(k){return (state.days[k]||[]).reduce(function(a,b){return a+b},0)}
+  function plural(n,a,b,c){var m=n%10,h=n%100;if(m===1&&h!==11)return a;if(m>=2&&m<=4&&(h<12||h>14))return b;return c}
+  function setsWord(n){return n+' '+plural(n,'подход','подхода','подходов')}
+  var fmtDay=new Intl.DateTimeFormat('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+  var fmtMonth=new Intl.DateTimeFormat('ru-RU',{month:'long',year:'numeric'});
+
+  // current set survives reloads only on the same day
+  if(state.cur.date!==todayKey())state.cur={date:todayKey(),count:0};
+
+  var selected=todayKey();
+  var viewMonth=new Date();viewMonth.setDate(1);
+
+  function toast(msg){var t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(function(){t.hidden=true},1800)}
+
+  function chips(el,k,editable){
+    var arr=state.days[k]||[];el.innerHTML='';
+    if(!arr.length){el.innerHTML='<span class="empty">Подходов пока нет</span>';return}
+    arr.forEach(function(n,i){
+      var c=document.createElement('span');c.className='chip num';c.textContent=n;
+      if(editable){var b=document.createElement('button');b.type='button';b.textContent='×';b.setAttribute('aria-label','Удалить подход '+n);
+        b.onclick=function(){arr.splice(i,1);if(!arr.length)delete state.days[k];save();renderAll()};c.appendChild(b)}
+      el.appendChild(c)})
+  }
+
+  function renderCounter(){
+    var tk=todayKey();
+    if(state.cur.date!==tk)state.cur={date:tk,count:0};
+    $('todayLabel').textContent=fmtDay.format(new Date());
+    $('count').textContent=state.cur.count;
+    $('saveSet').disabled=state.cur.count===0;
+    $('minus').disabled=state.cur.count===0;
+    var t=total(tk),g=state.goal;
+    $('todayTotal').innerHTML=t+' <small>/ '+g+'</small>';
+    $('todaySets').textContent=setsWord((state.days[tk]||[]).length);
+    $('todayBar').firstElementChild.style.width=Math.min(100,t/g*100)+'%';
+    $('todayBar').classList.toggle('done',t>=g);
+    chips($('todayChips'),tk,true);
+  }
+
+  function streak(){
+    var d=new Date();if(!total(key(d)))d.setDate(d.getDate()-1);
+    var n=0;while(total(key(d))>0){n++;d.setDate(d.getDate()-1)}return n
+  }
+
+  function renderCal(){
+    var y=viewMonth.getFullYear(),m=viewMonth.getMonth();
+    $('monthTitle').textContent=fmtMonth.format(viewMonth).replace(' г.','');
+    var g=$('grid');g.innerHTML='';
+    ['пн','вт','ср','чт','пт','сб','вс'].forEach(function(d){var e=document.createElement('div');e.className='dow';e.textContent=d;g.appendChild(e)});
+    var first=new Date(y,m,1),offset=(first.getDay()+6)%7,days=new Date(y,m+1,0).getDate();
+    var tk=todayKey(),now=new Date(),monthSum=0,best=0;
+    for(var i=0;i<offset;i++){var o=document.createElement('div');o.className='day out';g.appendChild(o)}
+    for(var d=1;d<=days;d++){
+      var k=key(new Date(y,m,d)),t=total(k);monthSum+=t;if(t>best)best=t;
+      var b=document.createElement('button');b.type='button';b.className='day';b.dataset.k=k;
+      var r=Math.min(1,t/state.goal);
+      if(t>0){var pct=r>=1?100:Math.round(20+r*60);b.style.background='color-mix(in oklab,var(--accent) '+pct+'%,var(--cell))';
+        if(pct>55)b.style.color='var(--accent-ink)'}
+      if(t>=state.goal)b.classList.add('goal');
+      if(k===tk)b.classList.add('is-today');
+      if(k===selected)b.classList.add('sel');
+      if(new Date(y,m,d)>now)b.classList.add('future');
+      b.innerHTML='<span class="d">'+d+'</span>'+(t?'<span class="t num">'+t+'</span>':'');
+      b.setAttribute('aria-label',d+': '+t+' отжиманий');
+      b.onclick=function(){selected=this.dataset.k;renderCal()};
+      g.appendChild(b)
+    }
+    $('stStreak').textContent=streak();
+    $('stMonth').textContent=monthSum;
+    $('stBest').textContent=best;
+    var sd=parse(selected);
+    $('selLabel').textContent=fmtDay.format(sd);
+    $('selTotal').textContent=total(selected);
+    $('selSets').textContent=setsWord((state.days[selected]||[]).length);
+    chips($('selChips'),selected,true);
+    $('goalInput').value=state.goal;
+  }
+  function renderAll(){renderCounter();renderCal()}
+
+  // tap pad: pointerdown for instant response (nose taps)
+  var pad=$('pad'),lastTap=0;
+  function bump(){
+    var t=Date.now();if(t-lastTap<180)return;lastTap=t;
+    state.cur.count++;save();renderCounter();
+    pad.classList.add('hit');setTimeout(function(){pad.classList.remove('hit')},90);
+    try{navigator.vibrate&&navigator.vibrate(25)}catch(e){}
+    wake();
+  }
+  pad.addEventListener('pointerdown',function(e){e.preventDefault();bump()});
+  pad.addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'){e.preventDefault();bump()}});
+  pad.addEventListener('contextmenu',function(e){e.preventDefault()});
+
+  $('minus').onclick=function(){if(state.cur.count>0){state.cur.count--;save();renderCounter()}};
+  $('clearSet').onclick=function(){state.cur.count=0;save();renderCounter()};
+  $('saveSet').onclick=function(){
+    var n=state.cur.count;if(!n)return;var tk=todayKey();
+    (state.days[tk]=state.days[tk]||[]).push(n);state.cur.count=0;save();renderAll();
+    toast('Подход записан: '+n);
+  };
+
+  // keep the screen on while counting
+  var lock=null;
+  function wake(){if(lock||!('wakeLock' in navigator))return;
+    navigator.wakeLock.request('screen').then(function(l){lock=l;l.addEventListener('release',function(){lock=null})}).catch(function(){})}
+
+  // tabs
+  document.querySelectorAll('.tabs button').forEach(function(b){b.onclick=function(){
+    var v=b.dataset.view;
+    document.querySelectorAll('.tabs button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
+    $('view-count').hidden=v!=='count';$('view-cal').hidden=v!=='cal';
+    if(v==='cal'){renderCal()}
+  }});
+  $('prevM').onclick=function(){viewMonth.setMonth(viewMonth.getMonth()-1);renderCal()};
+  $('nextM').onclick=function(){viewMonth.setMonth(viewMonth.getMonth()+1);renderCal()};
+
+  $('addForm').addEventListener('submit',function(e){e.preventDefault();
+    var n=parseInt($('addInput').value,10);if(!(n>0&&n<1000)){toast('Введите число от 1 до 999');return}
+    (state.days[selected]=state.days[selected]||[]).push(n);$('addInput').value='';save();renderAll();toast('Добавлено: '+n)});
+
+  $('goalInput').addEventListener('change',function(){var n=parseInt(this.value,10);
+    if(n>0){state.goal=n;save();renderAll();toast('Цель: '+n+' в день')}else this.value=state.goal});
+
+  $('exportBtn').onclick=function(){
+    var json=JSON.stringify({goal:state.goal,days:state.days},null,1);
+    try{navigator.clipboard.writeText(json).catch(function(){})}catch(e){}
+    try{var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));
+      a.download='otzhimaniya-'+todayKey()+'.json';document.body.appendChild(a);a.click();a.remove();}catch(e){}
+    toast('Файл сохранён, копия в буфере обмена');
+  };
+  $('importBtn').onclick=function(){$('importFile').click()};
+  $('importFile').onchange=function(){var f=this.files[0];if(!f)return;var r=new FileReader();
+    r.onload=function(){try{var d=JSON.parse(r.result);if(!d.days)throw 0;
+      state.days=d.days;if(d.goal)state.goal=+d.goal;save();renderAll();toast('Данные загружены')}
+      catch(e){toast('Это не файл экспорта счётчика')}};r.readAsText(f);this.value=''};
+  var wipeArmed=false;
+  $('wipeBtn').onclick=function(){var b=this;
+    if(!wipeArmed){wipeArmed=true;b.textContent='Нажмите ещё раз';setTimeout(function(){wipeArmed=false;b.textContent='Удалить всё'},3000);return}
+    state.days={};state.cur.count=0;save();renderAll();wipeArmed=false;b.textContent='Удалить всё';toast('Все записи удалены')};
+
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)renderAll()});
+  renderAll();
+
+  // offline support when installed as a PWA
+  if('serviceWorker' in navigator && /^https:|^http:\/\/localhost/.test(location.href) && document.querySelector('link[rel=manifest]')){
+    try{navigator.serviceWorker.register('sw.js').catch(function(){})}catch(e){}
+  }
+})();
+</script>
+
+</body>
+</html>
