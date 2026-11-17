@@ -1,4 +1,4 @@
-Лазейка 0.1.1 — личный VPN-клиент для Windows 10/11: mihomo (VLESS/XHTTP/Reality, AmneziaWG до 3.1, подписки) и zapret от Flowseal с умной маршрутизацией.
+Лазейка 0.1.2 — личный VPN-клиент для Windows 10/11: mihomo (VLESS/XHTTP/Reality, AmneziaWG до 3.1, подписки) и zapret от Flowseal с умной маршрутизацией.
 
 Пробная версия: на настоящем Windows ещё не проверялась.
 
@@ -9,4 +9,4 @@
 
 mihomo и zapret скачиваются при первом использовании с официальных релизов GitHub и сверяются по SHA-256.
 
-SHA-256 `Lazeyka.exe`: `89d3b55b9258f1d41e8f4a429748fc058bec700ec03c49bc02609fa1875301fd`
+SHA-256 `Lazeyka.exe`: `3d136825f97abbad3d327dcaeea458c4e371c12341a8b7f36a38b1b5eb11d8fb`
